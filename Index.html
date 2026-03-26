@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dinámica Tenis</title>
+
+<style>
+body{
+font-family: Arial;
+text-align:center;
+background:#f2f2f2;
+}
+
+h1{color:#0b6623;}
+
+table{
+margin:auto;
+border-collapse:collapse;
+}
+
+td,th{
+border:1px solid gray;
+padding:8px;
+min-width:70px;
+}
+
+.libre{background:#7CFC00; cursor:pointer;}
+.ocupado{background:#ff6b6b; color:white;}
+.torneo{background:#9370DB; color:white;}
+
+</style>
+</head>
+
+<body>
+
+<h1>🎾 Club Privado Dinámica Tenis</h1>
+
+<input id="nombre" placeholder="Nombre">
+
+<select id="tipo">
+<option value="cliente">Cliente</option>
+<option value="profesor">Profesor</option>
+<option value="admin">Administrador</option>
+</select>
+
+<select id="duracion">
+<option value="1">60 min</option>
+<option value="1.5">90 min</option>
+<option value="2">120 min</option>
+</select>
+
+<br><br>
+
+<button onclick="crearTorneo()">Crear TORNEO</button>
+<button onclick="limpiarDeuda()">Pagar deuda</button>
+
+<h3>Agenda</h3>
+
+<table id="agenda">
+<thead>
+<tr>
+<th>Hora</th>
+<th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<h3>Deuda total: $<span id="deuda">0</span></h3>
+
+<div id="reservas"></div>
+
+<script>
+
+const precioBase=12000;
+let deuda=0;
+
+const horas=[
+"07:00","07:30","08:00","08:30","09:00","09:30",
+"10:00","10:30","11:00","11:30","12:00","12:30",
+"13:00","13:30","14:00","14:30","15:00","15:30",
+"16:00","16:30","17:00","17:30","18:00","18:30",
+"19:00","19:30","20:00","20:30","21:00","21:30"
+];
+
+let reservas=[];
+
+function crearAgenda(){
+let tbody=document.querySelector("#agenda tbody");
+tbody.innerHTML="";
+
+horas.forEach((hora,i)=>{
+
+let fila=document.createElement("tr");
+let h=document.createElement("td");
+h.innerText=hora;
+fila.appendChild(h);
+
+for(let c=1;c<=5;c++){
+
+let celda=document.createElement("td");
+
+let r=reservas.find(x=>x.horaIndex===i && x.cancha===c);
+
+if(r){
+celda.innerText=r.texto;
+
+if(r.tipo==="torneo") celda.className="torneo";
+else celda.className="ocupado";
+
+}else{
+celda.innerText="Libre";
+celda.className="libre";
+celda.onclick=()=>reservar(c,i);
+}
+
+fila.appendChild(celda);
+}
+
+tbody.appendChild(fila);
+});
+}
+
+function hayHueco(cancha, inicio, bloques){
+
+// evita hueco de 30 min
+let antes=reservas.find(r=>r.cancha===cancha && r.horaIndex===inicio-1);
+let despues=reservas.find(r=>r.cancha===cancha && r.horaIndex===inicio+bloques);
+
+if((antes && !despues) || (!antes && despues)){
+return true;
+}
+
+return false;
+}
+
+function calcularPrecio(tipo, horaIndex, duracion){
+let hora=parseInt(horas[horaIndex]);
+
+let total=precioBase*duracion;
+
+if(tipo==="profesor"){
+if(hora<17) return total*0.5;
+}
+
+return total;
+}
+
+function reservar(cancha, horaIndex){
+
+let nombre=document.getElementById("nombre").value;
+let tipo=document.getElementById("tipo").value;
+let duracion=parseFloat(document.getElementById("duracion").value);
+
+if(nombre===""){alert("Ingresá nombre"); return;}
+
+let bloques=duracion*2;
+
+// validar ocupado
+for(let i=0;i<bloques;i++){
+if(reservas.find(r=>r.cancha===cancha && r.horaIndex===horaIndex+i)){
+alert("Ocupado"); return;
+}
+}
+
+// validar hueco
+if(hayHueco(cancha,horaIndex,bloques)){
+alert("No se puede dejar 30 min libre");
+return;
+}
+
+// crear reserva
+for(let i=0;i<bloques;i++){
+reservas.push({
+cancha,
+horaIndex:horaIndex+i,
+texto:nombre,
+tipo:"normal"
+});
+}
+
+// precio
+let precio=calcularPrecio(tipo,horaIndex,duracion);
+deuda+=precio;
+document.getElementById("deuda").innerText=deuda;
+
+let div=document.getElementById("reservas");
+let p=document.createElement("p");
+p.innerText=nombre+" C"+cancha+" "+horas[horaIndex]+" $" + precio;
+div.appendChild(p);
+
+crearAgenda();
+}
+
+function crearTorneo(){
+
+let cancha=prompt("Cancha (1-5)");
+let inicio=prompt("Hora index (ej 10)");
+
+for(let i=0;i<4;i++){
+reservas.push({
+cancha:parseInt(cancha),
+horaIndex:parseInt(inicio)+i,
+texto:"TORNEO",
+tipo:"torneo"
+});
+}
+
+crearAgenda();
+}
+
+function limpiarDeuda(){
+deuda=0;
+document.getElementById("deuda").innerText=0;
+}
+
+crearAgenda();
+
+</script>
+
+</body>
+</html>
